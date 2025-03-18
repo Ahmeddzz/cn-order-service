@@ -21,11 +21,10 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle
+          cache: maven
       - name: Build, unit tests and integration tests
         run: |
-          chmod +x gradlew
-          ./gradlew build
+          mvn clean install
       - name: Code vulnerability scanning
         uses: anchore/scan-action@v3
         id: scan
@@ -49,7 +48,7 @@ jobs:
           kubeconform --strict k8s
   package:
     name: Package and Publish
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'}}
     needs: [ build ]
     runs-on: ubuntu-22.04
     permissions:
@@ -64,12 +63,11 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle
+          cache: maven
       - name: Build container image
         run: |
-          chmod +x gradlew
-          ./gradlew bootBuildImage \
-            --imageName ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+          mvn clean package
+            docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} .
       - name: OCI image vulnerability scanning
         uses: anchore/scan-action@v3
         id: scan
